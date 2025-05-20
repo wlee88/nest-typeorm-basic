@@ -12,7 +12,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (cfg: ConfigService) => {
-        const cachedToken = ''
+        let cachedToken = ''
         let tokenExpiration = 0
         const host = cfg.getOrThrow('DB_HOST')
         const port = cfg.getOrThrow('DB_PORT')
@@ -34,16 +34,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
               })
               const now = new Date().getTime()
         
-              if (tokenExpiration !== 0 && cachedToken && now < tokenExpiration) {
+              if (tokenExpiration !== 0 && cachedToken != '' && now < tokenExpiration) {
                 return cachedToken
               }
-              
+              console.log({tokenExpiration})
               console.log('10 minutes stale - getting new auth token')
-              const token = signer.getAuthToken()
+              cachedToken = await signer.getAuthToken()
               // Token Expires every 15 minutes / so refresh every 10
               tokenExpiration = now + 10 * 60 * 1000
-        
-              return token
+
+    
+              return cachedToken
             } catch (e) {
               console.error({e})
               console.error('something went badly wrong')
