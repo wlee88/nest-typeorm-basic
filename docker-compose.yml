@@ -1,0 +1,11 @@
+# docker-compose.yml
+version: '3.8'
+services:
+  nest-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=your-db-host
+      - DB_PORT=5432
+      - AWS_REGION=ap-southeast-2

@@ -46,6 +46,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           database: 'postgres',
           autoLoadEntities: true,
           synchronize: true, // NOTE: disable in production
+          ssl: {
+            rejectUnauthorized: false  // Or true if using a trusted cert
+          }
         }
       }
     }),
