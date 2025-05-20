@@ -25,23 +25,30 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           port,
           username,
           password: async () => {
-            const signer = new Signer({
-              hostname: host,
-              port,
-              username,
-              region,
-            })
-            const now = new Date().getTime()
-      
-            if (tokenExpiration !== 0 && cachedToken && now < tokenExpiration) {
-              return cachedToken
+            try {
+              const signer = new Signer({
+                hostname: host,
+                port,
+                username,
+                region,
+              })
+              const now = new Date().getTime()
+        
+              if (tokenExpiration !== 0 && cachedToken && now < tokenExpiration) {
+                return cachedToken
+              }
+              
+              console.log('10 minutes stale - getting new auth token')
+              const token = signer.getAuthToken()
+              // Token Expires every 15 minutes / so refresh every 10
+              tokenExpiration = now + 10 * 60 * 1000
+        
+              return token
+            } catch (e) {
+              console.error({e})
+              console.error('something went badly wrong')
+              throw e
             }
-      
-            const token = signer.getAuthToken()
-            // Token Expires every 15 minutes / so refresh every 10
-            tokenExpiration = now + 10 * 60 * 1000
-      
-            return token
           }, // Get from rds presign
           database: 'postgres',
           autoLoadEntities: true,
