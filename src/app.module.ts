@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersModule } from './users/users.module';
 import { Signer } from '@aws-sdk/rds-signer';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DataSource, DataSourceOptions } from 'typeorm';
 
 @Module({
   imports: [
@@ -12,51 +13,31 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (cfg: ConfigService) => {
-        let cachedToken = ''
-        let tokenExpiration = 0
-        const host = cfg.getOrThrow('DB_HOST')
-        const port = cfg.getOrThrow('DB_PORT')
-        const username = cfg.getOrThrow('DB_USER')
-        const region = cfg.getOrThrow('AWS_REGION')
+        // const host = cfg.getOrThrow('DB_HOST')
+        // const port = cfg.getOrThrow('DB_PORT')
+        // const username = cfg.getOrThrow('DB_USER')
+        // const password = cfg.getOrThrow('DB_PASSWORD')
+        const host = "localhost"
+        const port = 5432
+        const username = "postgres"
+        let changeme = "wrong"
+        let password = async () => await Promise.resolve(changeme)
+
+        console.log({host, port, username, password: await password() })
 
         return {
           type: 'postgres',
           host,
           port,
           username,
-          password: async () => {
-            try {
-              const signer = new Signer({
-                hostname: host,
-                port,
-                username,
-                region,
-              })
-              const now = new Date().getTime()
-        
-              if (tokenExpiration !== 0 && cachedToken != '' && now < tokenExpiration) {
-                return cachedToken
-              }
-              console.log({tokenExpiration})
-              console.log('10 minutes stale - getting new auth token')
-              cachedToken = await signer.getAuthToken()
-              // Token Expires every 15 minutes / so refresh every 10
-              tokenExpiration = now + 10 * 60 * 1000
-
-    
-              return cachedToken
-            } catch (e) {
-              console.error({e})
-              console.error('something went badly wrong')
-              throw e
-            }
-          }, // Get from rds presign
-          database: 'postgres',
-          autoLoadEntities: true,
-          synchronize: true, // NOTE: disable in production
-          ssl: {
-            rejectUnauthorized: false  // Or true if using a trusted cert
-          }
+          password, 
+          toRetry(err: Error) {
+            console.error('POOL ERROR HANDLER')
+            console.log({err})
+            changeme = "password"
+            return true
+          },
+          dataSourceFactory: async (options?: DataSourceOptions) => createPostgresDataSource,
         }
       }
     }),
@@ -66,3 +47,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   providers: [AppService],
 })
 export class AppModule {}
+
+
+export const createPostgresDataSource = async (options: DataSourceOptions): Promise<DataSource> => {
+  const dataSource = new DataSource(options)
+  // @ts-expect-error TypeORM does not support custom types defined in Postgres
+  dataSource.driver.supportedDataTypes.push('timerange')
+  return dataSource
+}

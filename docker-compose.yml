@@ -3,9 +3,21 @@ version: '3.8'
 services:
   nest-app:
     build: .
+    env_file: .env
     ports:
       - "3000:3000"
     environment:
-      - DB_HOST=your-db-host
-      - DB_PORT=5432
-      - AWS_REGION=ap-southeast-2
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - AWS_REGION=${AWS_REGION}
+  postgres:
+    image: postgres:latest
+    env_file: .env
+    restart: always
+    ports: 
+      - "${DB_PORT}:${DB_PORT}"
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
